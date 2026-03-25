@@ -25,12 +25,14 @@ class WPPost {
 
   factory WPPost.fromJson(Map<String, dynamic> json) {
     String parsedAuthor = '';
-    if (json['_embedded'] != null && json['_embedded']['author'] != null && json['_embedded']['author'].isNotEmpty) {
-      parsedAuthor = json['_embedded']['author'][0]['name'] ?? '';
+    if (json['_embedded'] is Map && json['_embedded']['author'] is List && json['_embedded']['author'].isNotEmpty) {
+      if (json['_embedded']['author'][0] is Map) {
+        parsedAuthor = json['_embedded']['author'][0]['name'] ?? '';
+      }
     }
 
-    String contentRaw = json['content']?['rendered'] ?? '';
-    String linkRaw = json['link'] ?? '';
+    String contentRaw = json['content'] is Map ? (json['content']['rendered'] ?? '') : '';
+    String linkRaw = json['link']?.toString() ?? '';
     
     // Extract short URL from content via Regex
     String extractedShort = linkRaw;
@@ -42,19 +44,19 @@ class WPPost {
 
     // ACF Sub-headline (fallback to Excerpt)
     String sub = '';
-    if (json['acf'] != null) {
+    if (json['acf'] is Map) {
       sub = json['acf']['sub_headline'] ?? json['acf']['sub_heading'] ?? '';
     }
     if (sub.isEmpty) {
-      sub = (json['excerpt']?['rendered'] ?? '').replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '').trim();
+      sub = (json['excerpt'] is Map ? (json['excerpt']['rendered'] ?? '') : '').replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '').trim();
     }
 
     return WPPost(
       id: json['id'] ?? 0,
       date: json['date'] ?? '',
-      title: json['title']?['rendered'] ?? '',
+      title: json['title'] is Map ? (json['title']['rendered'] ?? '') : '',
       content: contentRaw,
-      excerpt: json['excerpt']?['rendered'] ?? '',
+      excerpt: json['excerpt'] is Map ? (json['excerpt']['rendered'] ?? '') : '',
       featuredMediaId: json['featured_media'] ?? 0,
       featuredMediaUrl: json['featured_media_url'],
       authorName: parsedAuthor,
