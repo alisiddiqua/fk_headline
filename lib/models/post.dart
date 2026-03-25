@@ -6,6 +6,7 @@ class WPPost {
   final String excerpt;
   final int featuredMediaId;
   final String? featuredMediaUrl;
+  final String authorName;
 
   WPPost({
     required this.id,
@@ -15,9 +16,15 @@ class WPPost {
     required this.excerpt,
     required this.featuredMediaId,
     this.featuredMediaUrl,
+    required this.authorName,
   });
 
   factory WPPost.fromJson(Map<String, dynamic> json) {
+    String parsedAuthor = '';
+    if (json['_embedded'] != null && json['_embedded']['author'] != null && json['_embedded']['author'].isNotEmpty) {
+      parsedAuthor = json['_embedded']['author'][0]['name'] ?? '';
+    }
+
     return WPPost(
       id: json['id'] ?? 0,
       date: json['date'] ?? '',
@@ -25,7 +32,8 @@ class WPPost {
       content: json['content']?['rendered'] ?? '',
       excerpt: json['excerpt']?['rendered'] ?? '',
       featuredMediaId: json['featured_media'] ?? 0,
-      featuredMediaUrl: json['featured_media_url'], // Support passing this directly
+      featuredMediaUrl: json['featured_media_url'],
+      authorName: parsedAuthor,
     );
   }
 
@@ -38,6 +46,9 @@ class WPPost {
       'excerpt': {'rendered': excerpt},
       'featured_media': featuredMediaId,
       'featured_media_url': featuredMediaUrl,
+      '_embedded': {
+        'author': [{'name': authorName}]
+      }
     };
   }
 
@@ -50,6 +61,7 @@ class WPPost {
       excerpt: excerpt,
       featuredMediaId: featuredMediaId,
       featuredMediaUrl: featuredMediaUrl ?? this.featuredMediaUrl,
+      authorName: authorName,
     );
   }
 }

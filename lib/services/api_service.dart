@@ -15,6 +15,7 @@ class ApiService {
         queryParameters: {
           'page': page,
           'per_page': 10,
+          '_embed': true,
           if (categoryId != null) 'categories': categoryId,
           if (searchQuery != null && searchQuery.isNotEmpty) 'search': searchQuery,
         },

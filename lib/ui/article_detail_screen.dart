@@ -4,6 +4,7 @@ import '../models/post.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_html/flutter_html.dart';
 import '../providers/bookmark_provider.dart';
+import '../services/share_service.dart';
 
 class ArticleDetailScreen extends ConsumerWidget {
   final WPPost post;
@@ -20,9 +21,7 @@ class ArticleDetailScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Share functionality available with native extension')),
-              );
+              ShareService.shareArticle(post);
             },
           ),
           isBookmarkedAsync.when(
@@ -77,12 +76,16 @@ class ArticleDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Published on ${post.date.substring(0, 10)}',
+                    'By ${post.authorName.isNotEmpty ? post.authorName : "Fikrokhabar"} | Published on ${post.date.substring(0, 10)}',
                     style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   Html(
-                    data: post.content,
+                    data: post.content.replaceAll('data-src=', 'src=').replaceAll('data-lazy-src=', 'src='),
+                    style: {
+                      "img": Style(width: Width(100, Unit.percent)),
+                      ".foogallery img": Style(width: Width(100, Unit.percent), display: Display.block),
+                    },
                   ),
                 ],
               ),

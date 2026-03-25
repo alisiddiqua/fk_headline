@@ -57,6 +57,11 @@ class PostCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'By ${post.authorName.isNotEmpty ? post.authorName : "Fikrokhabar"}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ],
               ),
             ),
