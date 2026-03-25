@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_html/flutter_html.dart';
 import '../providers/bookmark_provider.dart';
 import '../services/share_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ArticleDetailScreen extends ConsumerWidget {
   final WPPost post;
@@ -84,18 +85,6 @@ class ArticleDetailScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(height: 1.3),
                   ),
                   const SizedBox(height: 16),
-                  if (post.subHeadline.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Text(
-                        post.subHeadline,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontStyle: FontStyle.italic,
-                          color: Theme.of(context).colorScheme.primary,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
                   Row(
                     children: [
                       CircleAvatar(
@@ -123,11 +112,32 @@ class ArticleDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
                   const Divider(),
+                  if (post.pdfLink.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text('Read Full Magazine (PDF)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 54),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () async {
+                          final Uri url = Uri.parse(post.pdfLink);
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                      ),
+                    ),
                   Html(
                     data: post.content
                         .replaceAll('data-src-fg=', 'src=')
                         .replaceAll('data-src=', 'src=')
-                        .replaceAll('data-lazy-src=', 'src='),
+                        .replaceAll('data-lazy-src=', 'src=')
+                        .replaceAll(RegExp(r'height="(\d+)"'), ''),
                     style: {
                       "body": Style(
                         margin: Margins.zero,
@@ -135,8 +145,8 @@ class ArticleDetailScreen extends ConsumerWidget {
                         lineHeight: LineHeight(1.6),
                       ),
                       "p": Style(margin: Margins.only(bottom: 16)),
-                      "img": Style(width: Width(100, Unit.percent)),
-                      ".foogallery img": Style(width: Width(100, Unit.percent), display: Display.block),
+                      "img": Style(width: Width(100, Unit.percent), height: Height.auto()),
+                      ".foogallery img": Style(width: Width(100, Unit.percent), height: Height.auto(), display: Display.block),
                     },
                   ),
                 ],

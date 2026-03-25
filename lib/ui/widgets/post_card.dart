@@ -45,13 +45,6 @@ class PostCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 10),
-              if (post.subHeadline.isNotEmpty)
-                Text(
-                  post.subHeadline,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-                ),
               const SizedBox(height: 12),
               Row(
                 children: [

@@ -7,8 +7,9 @@ class WPPost {
   final int featuredMediaId;
   final String? featuredMediaUrl;
   final String authorName;
-  final String subHeadline;
+  final String subHeadline = ''; // Deprecated, removed per user request
   final String shortLink;
+  final String pdfLink;
 
   WPPost({
     required this.id,
@@ -19,8 +20,8 @@ class WPPost {
     required this.featuredMediaId,
     this.featuredMediaUrl,
     required this.authorName,
-    required this.subHeadline,
     required this.shortLink,
+    required this.pdfLink,
   });
 
   factory WPPost.fromJson(Map<String, dynamic> json) {
@@ -42,13 +43,26 @@ class WPPost {
       extractedShort = match.group(0)!;
     }
 
-    // ACF Sub-headline (fallback to Excerpt)
-    String sub = '';
-    if (json['acf'] is Map) {
-      sub = json['acf']['sub_headline'] ?? json['acf']['sub_heading'] ?? '';
+    // Extract PDF URL if Magazine Plugin is used
+    String extractedPdf = '';
+    final RegExp pdfRegExp = RegExp(r'href="([^"]+\.pdf[^"]*)"');
+    final pdfMatch = pdfRegExp.firstMatch(contentRaw);
+    if (pdfMatch != null) {
+      extractedPdf = pdfMatch.group(1)!;
+    } else {
+       final RegExp iframeRegExp = RegExp(r'src="([^"]+\.pdf[^"]*)"');
+       final iframeMatch = iframeRegExp.firstMatch(contentRaw);
+       if (iframeMatch != null) extractedPdf = iframeMatch.group(1)!;
     }
-    if (sub.isEmpty) {
-      sub = (json['excerpt'] is Map ? (json['excerpt']['rendered'] ?? '') : '').replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '').trim();
+
+    // Automatic fallback to first image in article for Gallery posts
+    String? mediaUrl = json['featured_media_url'];
+    if (mediaUrl == null || mediaUrl.isEmpty) {
+        final RegExp imgRegExp = RegExp(r'<img[^>]+src="([^">]+)"');
+        final imgMatch = imgRegExp.firstMatch(contentRaw.replaceAll('data-src-fg=', 'src='));
+        if (imgMatch != null) {
+            mediaUrl = imgMatch.group(1)!;
+        }
     }
 
     return WPPost(
@@ -58,10 +72,10 @@ class WPPost {
       content: contentRaw,
       excerpt: json['excerpt'] is Map ? (json['excerpt']['rendered'] ?? '') : '',
       featuredMediaId: json['featured_media'] ?? 0,
-      featuredMediaUrl: json['featured_media_url'],
+      featuredMediaUrl: mediaUrl,
       authorName: parsedAuthor,
-      subHeadline: sub,
       shortLink: extractedShort,
+      pdfLink: extractedPdf,
     );
   }
 
@@ -77,9 +91,6 @@ class WPPost {
       'link': shortLink,
       '_embedded': {
         'author': [{'name': authorName}]
-      },
-      'acf': {
-        'sub_headline': subHeadline
       }
     };
   }
@@ -94,8 +105,8 @@ class WPPost {
       featuredMediaId: featuredMediaId,
       featuredMediaUrl: featuredMediaUrl ?? this.featuredMediaUrl,
       authorName: authorName,
-      subHeadline: subHeadline,
       shortLink: shortLink,
+      pdfLink: pdfLink,
     );
   }
 }
