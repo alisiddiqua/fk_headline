@@ -75,13 +75,21 @@ class ArticleDetailScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
+                  if (post.subHeadline.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                      child: Text(
+                        post.subHeadline,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontStyle: FontStyle.italic, color: Colors.grey[700]),
+                      ),
+                    ),
                   Text(
                     'By ${post.authorName.isNotEmpty ? post.authorName : "Fikrokhabar"} | Published on ${post.date.substring(0, 10)}',
                     style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   Html(
-                    data: post.content.replaceAll('data-src=', 'src=').replaceAll('data-lazy-src=', 'src='),
+                    data: post.content.replaceAll('data-src-fg=', 'src=').replaceAll('data-src=', 'src=').replaceAll('data-lazy-src=', 'src='),
                     style: {
                       "img": Style(width: Width(100, Unit.percent)),
                       ".foogallery img": Style(width: Width(100, Unit.percent), display: Display.block),

@@ -7,6 +7,8 @@ class WPPost {
   final int featuredMediaId;
   final String? featuredMediaUrl;
   final String authorName;
+  final String subHeadline;
+  final String shortLink;
 
   WPPost({
     required this.id,
@@ -17,6 +19,8 @@ class WPPost {
     required this.featuredMediaId,
     this.featuredMediaUrl,
     required this.authorName,
+    required this.subHeadline,
+    required this.shortLink,
   });
 
   factory WPPost.fromJson(Map<String, dynamic> json) {
@@ -25,15 +29,37 @@ class WPPost {
       parsedAuthor = json['_embedded']['author'][0]['name'] ?? '';
     }
 
+    String contentRaw = json['content']?['rendered'] ?? '';
+    String linkRaw = json['link'] ?? '';
+    
+    // Extract short URL from content via Regex
+    String extractedShort = linkRaw;
+    final RegExp regExp = RegExp(r'https://english\.fikrokhabar\.com/[a-zA-Z0-9]{4,7}(?=["<\s])');
+    final match = regExp.firstMatch(contentRaw);
+    if (match != null) {
+      extractedShort = match.group(0)!;
+    }
+
+    // ACF Sub-headline (fallback to Excerpt)
+    String sub = '';
+    if (json['acf'] != null) {
+      sub = json['acf']['sub_headline'] ?? json['acf']['sub_heading'] ?? '';
+    }
+    if (sub.isEmpty) {
+      sub = (json['excerpt']?['rendered'] ?? '').replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '').trim();
+    }
+
     return WPPost(
       id: json['id'] ?? 0,
       date: json['date'] ?? '',
       title: json['title']?['rendered'] ?? '',
-      content: json['content']?['rendered'] ?? '',
+      content: contentRaw,
       excerpt: json['excerpt']?['rendered'] ?? '',
       featuredMediaId: json['featured_media'] ?? 0,
       featuredMediaUrl: json['featured_media_url'],
       authorName: parsedAuthor,
+      subHeadline: sub,
+      shortLink: extractedShort,
     );
   }
 
@@ -46,8 +72,12 @@ class WPPost {
       'excerpt': {'rendered': excerpt},
       'featured_media': featuredMediaId,
       'featured_media_url': featuredMediaUrl,
+      'link': shortLink,
       '_embedded': {
         'author': [{'name': authorName}]
+      },
+      'acf': {
+        'sub_headline': subHeadline
       }
     };
   }
@@ -62,6 +92,8 @@ class WPPost {
       featuredMediaId: featuredMediaId,
       featuredMediaUrl: featuredMediaUrl ?? this.featuredMediaUrl,
       authorName: authorName,
+      subHeadline: subHeadline,
+      shortLink: shortLink,
     );
   }
 }
