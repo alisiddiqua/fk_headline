@@ -19,6 +19,12 @@ class HomeScreen extends ConsumerWidget {
             const Text('FK Headline', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () {},
+          )
+        ],
       ),
       body: postsAsyncValue.when(
         data: (posts) {
@@ -29,16 +35,24 @@ class HomeScreen extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(postsProvider(null));
             },
-            child: ListView.builder(
+            child: ListView.separated(
               itemCount: posts.length,
+              separatorBuilder: (context, index) {
+                if (index == 0) return const SizedBox(height: 16);
+                return const Divider(height: 1);
+              },
               itemBuilder: (context, index) {
-                return PostCard(post: posts[index]);
+                // The first post is rendered as a large featured card
+                return PostCard(
+                  post: posts[index],
+                  isFeatured: index == 0,
+                );
               },
             ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        error: (error, stack) => const Center(child: Text('Error loading news')),
       ),
     );
   }
