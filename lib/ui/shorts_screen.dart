@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../services/youtube_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -115,21 +115,21 @@ class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController.fromVideoId(
-      videoId: widget.videoId,
-      params: const YoutubePlayerParams(
-        showControls: false,
-        showFullscreenButton: false,
-        loop: true,
+    _controller = YoutubePlayerController(
+      initialVideoId: widget.videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: true,
         mute: false,
-        origin: 'https://www.youtube.com',
+        loop: true,
+        hideControls: true,
+        disableDragSeek: true,
       ),
     );
   }
 
   @override
   void dispose() {
-    _controller.close();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -140,6 +140,7 @@ class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
         child: YoutubePlayer(
           controller: _controller,
           aspectRatio: 9 / 16,
+          showVideoProgressIndicator: false,
         ),
       ),
     );
