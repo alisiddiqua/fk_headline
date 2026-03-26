@@ -110,7 +110,8 @@ class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
+    _controller = YoutubePlayerController.fromVideoId(
+      videoId: widget.videoId,
       params: const YoutubePlayerParams(
         showControls: false,
         showFullscreenButton: false,
@@ -118,7 +119,6 @@ class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
         mute: false,
       ),
     );
-    _controller.loadVideoById(videoId: widget.videoId);
   }
 
   @override
@@ -130,7 +130,7 @@ class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: IgnorePointer( // Ignore pointer to allow PageView vertical swiping unhindered
+      child: IgnorePointer(
         child: YoutubePlayer(
           controller: _controller,
           aspectRatio: 9 / 16,
