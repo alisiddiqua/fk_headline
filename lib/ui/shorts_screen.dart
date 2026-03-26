@@ -117,6 +117,7 @@ class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
         showFullscreenButton: false,
         loop: true,
         mute: false,
+        origin: 'https://www.youtube.com',
       ),
     );
   }
