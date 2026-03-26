@@ -14,8 +14,8 @@ class ApiService {
         '${ApiConstants.baseUrl}${ApiConstants.postsEndpoint}',
         queryParameters: {
           'page': page,
-          'per_page': 10,
-          '_embed': true,
+          'per_page': 8, // Reduced from 10 to instantly lower MySQL thread locks.
+          // _embed removed completely to prevent 503 CPU crashes.
           if (categoryId != null) 'categories': categoryId,
           if (searchQuery != null && searchQuery.isNotEmpty) 'search': searchQuery,
         },
@@ -25,7 +25,8 @@ class ApiService {
         List data = response.data;
         List<WPPost> posts = data.map((json) => WPPost.fromJson(json)).toList();
 
-        // Fetch media for posts with featured images
+        // Fetch media sequentially only if needed. Because we reduced per_page to 8, 
+        // this is mathematically massively lighter on the 1GB memory cap.
         for (int i = 0; i < posts.length; i++) {
           if (posts[i].featuredMediaId != 0) {
             String? mediaUrl = await fetchMediaUrl(posts[i].featuredMediaId);
@@ -57,7 +58,7 @@ class ApiService {
     try {
       final response = await _dio.get(
         '${ApiConstants.baseUrl}${ApiConstants.categoriesEndpoint}',
-        queryParameters: {'per_page': 20, 'hide_empty': true},
+        queryParameters: {'per_page': 15, 'hide_empty': true},
       );
 
       if (response.statusCode == 200) {

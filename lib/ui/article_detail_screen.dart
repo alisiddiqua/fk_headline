@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_html/flutter_html.dart';
 import '../providers/bookmark_provider.dart';
 import '../services/share_service.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ArticleDetailScreen extends ConsumerWidget {
@@ -15,6 +16,7 @@ class ArticleDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isBookmarkedAsync = ref.watch(isBookmarkedProvider(post.id));
+    final bool isPhotoGallery = post.content.contains('foogallery');
 
     return Scaffold(
       body: CustomScrollView(
@@ -134,24 +136,46 @@ class ArticleDetailScreen extends ConsumerWidget {
                         },
                       ),
                     ),
-                  Html(
-                    data: post.content
-                        .replaceAll(RegExp(r'src="data:image[^"]+"'), '') // Strips the placeholder overriding the real src
-                        .replaceAll('data-src-fg=', 'src=')
-                        .replaceAll('data-src=', 'src=')
-                        .replaceAll('data-lazy-src=', 'src=')
-                        .replaceAll(RegExp(r'height="\d+"'), ''), // Strips hardcoded distortion heights
-                    style: {
-                      "body": Style(
-                        margin: Margins.zero,
-                        fontSize: FontSize(16.0),
-                        lineHeight: LineHeight(1.6),
+                  if (isPhotoGallery)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('View Full Photo Gallery', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 54),
+                          backgroundColor: Colors.indigoAccent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () async {
+                          final Uri url = Uri.parse(post.link);
+                          try {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          } catch (e) {
+                            debugPrint(e.toString());
+                          }
+                        },
                       ),
-                      "p": Style(margin: Margins.only(bottom: 16)),
-                      "img": Style(width: Width(100, Unit.percent), height: Height.auto()),
-                      ".foogallery img": Style(width: Width(100, Unit.percent), height: Height.auto(), display: Display.block),
-                    },
-                  ),
+                    ),
+                  if (!isPhotoGallery)
+                    Html(
+                      data: post.content
+                          .replaceAll(RegExp(r'src="data:image[^"]+"'), '')
+                          .replaceAll('data-src-fg=', 'src=')
+                          .replaceAll('data-src=', 'src=')
+                          .replaceAll('data-lazy-src=', 'src=')
+                          .replaceAll(RegExp(r'height="\d+"'), ''),
+                      style: {
+                        "body": Style(
+                          margin: Margins.zero,
+                          fontSize: FontSize(16.0),
+                          lineHeight: LineHeight(1.6),
+                        ),
+                        "p": Style(margin: Margins.only(bottom: 16)),
+                        "img": Style(width: Width(100, Unit.percent), height: Height.auto()),
+                      },
+                    ),
                 ],
               ),
             ),
