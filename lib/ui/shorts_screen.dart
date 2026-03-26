@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../services/youtube_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -40,9 +40,6 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  // This is the golden secret to extreme smoothness: 
-                  // We ONLY render the heavy Youtube webview player if the card is completely active. 
-                  // Otherwise, we load a featherweight thumbnail image to guarantee flawless swiping at 60Hz.
                   if (isActive)
                     ShortVideoPlayer(videoId: videoId)
                   else
@@ -51,7 +48,6 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
                       fit: BoxFit.cover,
                     ),
                   
-                  // Text Overlay Gradient Box
                   Positioned(
                     bottom: 0, left: 0, right: 0,
                     child: Container(
@@ -115,29 +111,30 @@ class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
   void initState() {
     super.initState();
     _controller = YoutubePlayerController(
-      initialVideoId: widget.videoId,
-      flags: const YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
+      params: const YoutubePlayerParams(
+        showControls: false,
+        showFullscreenButton: false,
         loop: true,
-        hideControls: true, 
-        disableDragSeek: true,
+        mute: false,
       ),
     );
+    _controller.loadVideoById(videoId: widget.videoId);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: YoutubePlayer(
-        controller: _controller,
-        showVideoProgressIndicator: false,
+      child: IgnorePointer( // Ignore pointer to allow PageView vertical swiping unhindered
+        child: YoutubePlayer(
+          controller: _controller,
+          aspectRatio: 9 / 16,
+        ),
       ),
     );
   }
