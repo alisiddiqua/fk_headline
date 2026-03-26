@@ -149,7 +149,7 @@ class ArticleDetailScreen extends ConsumerWidget {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () async {
-                          final Uri url = Uri.parse(post.link);
+                          final Uri url = Uri.parse(post.shortLink);
                           try {
                             await launchUrl(url, mode: LaunchMode.externalApplication);
                           } catch (e) {
