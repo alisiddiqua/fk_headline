@@ -126,18 +126,21 @@ class ArticleDetailScreen extends ConsumerWidget {
                         ),
                         onPressed: () async {
                           final Uri url = Uri.parse(post.pdfLink);
-                          if (await canLaunchUrl(url)) {
+                          try {
                             await launchUrl(url, mode: LaunchMode.externalApplication);
+                          } catch (e) {
+                            debugPrint(e.toString());
                           }
                         },
                       ),
                     ),
                   Html(
                     data: post.content
+                        .replaceAll(RegExp(r'src="data:image[^"]+"'), '') // Strips the placeholder overriding the real src
                         .replaceAll('data-src-fg=', 'src=')
                         .replaceAll('data-src=', 'src=')
                         .replaceAll('data-lazy-src=', 'src=')
-                        .replaceAll(RegExp(r'height="(\d+)"'), ''),
+                        .replaceAll(RegExp(r'height="\d+"'), ''), // Strips hardcoded distortion heights
                     style: {
                       "body": Style(
                         margin: Margins.zero,
