@@ -22,7 +22,7 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
       backgroundColor: Colors.black,
       body: shortsAsyncValue.when(
         data: (shorts) {
-          if (shorts.isEmpty) return const Center(child: Text('No shorts found', style: TextStyle(color: Colors.white)));
+          if (shorts.isEmpty) return const Center(child: Text('No videos found', style: TextStyle(color: Colors.white)));
           return PageView.builder(
             scrollDirection: Axis.vertical,
             itemCount: shorts.length,
@@ -30,6 +30,11 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
               setState(() {
                 _currentIndex = index;
               });
+              
+              // Infinite TikTok scrolling logic: If user is swiping near the end, softly pull the next block
+              if (index >= shorts.length - 3) {
+                ref.read(shortsProvider.notifier).loadMore();
+              }
             },
             itemBuilder: (context, index) {
               final videoId = shorts[index]['id']['videoId'];
