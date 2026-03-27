@@ -4,6 +4,7 @@ import 'package:video_player/video_player.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../providers/api_provider.dart';
+import '../services/youtube_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 const int _shortsTabIndex = 3; // FK Shorts is the 4th tab (0-indexed)
