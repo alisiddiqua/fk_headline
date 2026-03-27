@@ -1,23 +1,18 @@
-// lib/services/fcm_service.dart
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
-class FCMService {
+class NotificationService {
+  static const String _appId = '68717fb8-796d-4f6c-b11b-8e3fff493547';
+
   static Future<void> initialize() async {
-    // NOTE: Activating Firebase requires google-services.json from your Firebase Console.
-    // Once you have it, run `flutterfire configure` and uncomment these:
+    // Initialize OneSignal
+    OneSignal.initialize(_appId);
     
-    // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    // FirebaseMessaging messaging = FirebaseMessaging.instance;
-    // await messaging.requestPermission();
-    // 
-    // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    // 
-    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    //   print('Got a message whilst in the foreground: ${message.data}');
-    // });
-  }
+    // Request permission for notifications (shows system dialog on first launch)
+    await OneSignal.Notifications.requestPermission(true);
 
-  // static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  //   await Firebase.initializeApp();
-  //   print("Handling a background message: ${message.messageId}");
-  // }
+    // Listen for notification clicks — opens app to relevant section
+    OneSignal.Notifications.addClickListener((event) {
+      // You can navigate to a specific screen based on notification data here
+    });
+  }
 }

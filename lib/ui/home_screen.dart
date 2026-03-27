@@ -60,7 +60,7 @@ class HomeScreen extends ConsumerWidget {
             onPressed: () async {
               final url = isUrdu
                   ? 'https://whatsapp.com/channel/0029VaoBbwMHltY4b5JNim2x'
-                  : 'https://english.fikrokhabar.com/whatsapp';
+                  : 'https://whatsapp.com/channel/0029VbApX7vGJP8HGgsiib2J';
               final Uri uri = Uri.parse(url);
               try {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
