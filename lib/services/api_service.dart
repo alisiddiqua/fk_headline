@@ -15,7 +15,7 @@ class ApiService {
         queryParameters: {
           'page': page,
           'per_page': 8,
-          '_fields': 'id,title,excerpt,date,categories,author,featured_media,link,slug',
+          '_fields': 'id,title,content,excerpt,date,categories,author,featured_media,link,slug',
           if (categoryId != null) 'categories': categoryId,
           if (searchQuery != null && searchQuery.isNotEmpty) 'search': searchQuery,
         },

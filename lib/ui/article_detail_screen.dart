@@ -78,7 +78,7 @@ class ArticleDetailScreen extends ConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 80.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

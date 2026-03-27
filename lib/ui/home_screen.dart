@@ -58,10 +58,12 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 26),
             onPressed: () async {
-              final base = isUrdu ? 'https://fikrokhabar.com' : 'https://english.fikrokhabar.com';
-              final Uri url = Uri.parse('$base/whatsapp');
+              final url = isUrdu
+                  ? 'https://whatsapp.com/channel/0029VaoBbwMHltY4b5JNim2x'
+                  : 'https://english.fikrokhabar.com/whatsapp';
+              final Uri uri = Uri.parse(url);
               try {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
               } catch (e) {
                 debugPrint(e.toString());
               }
