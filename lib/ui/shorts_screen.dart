@@ -51,7 +51,7 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
               }
             },
             itemBuilder: (context, index) {
-              final videoId = shorts[index]['id']['videoId'];
+              final videoId = shorts[index]['snippet']['resourceId']['videoId'];
               final snippet = shorts[index]['snippet'];
               final thumbnailUrl = snippet['thumbnails']['high']['url'];
               final bool isActive = _currentIndex == index;
