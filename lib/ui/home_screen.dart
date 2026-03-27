@@ -21,7 +21,7 @@ class HomeScreen extends ConsumerWidget {
             Image.asset('assets/logo.png', height: 28),
             const SizedBox(width: 10),
             Text(
-              isUrdu ? 'FK اردو خبریں' : 'FK Headline',
+              isUrdu ? 'FK Urdu Khabre' : 'FK Headline',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -40,7 +40,9 @@ class HomeScreen extends ConsumerWidget {
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: isUrdu ? Colors.green : Theme.of(context).colorScheme.primary,
+                // Green = currently in Urdu (tap to go back to English)
+                // Orange = currently in English (tap to switch to Urdu)
+                color: isUrdu ? Colors.green.shade600 : Colors.deepOrange,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(

@@ -14,44 +14,64 @@ class ApiService {
         '$_baseUrl/posts',
         queryParameters: {
           'page': page,
-          'per_page': 8, // Reduced from 10 to instantly lower MySQL thread locks.
-          // _embed removed completely to prevent 503 CPU crashes.
+          'per_page': 8,
+          '_fields': 'id,title,excerpt,date,categories,author,featured_media,link,slug',
           if (categoryId != null) 'categories': categoryId,
           if (searchQuery != null && searchQuery.isNotEmpty) 'search': searchQuery,
         },
       );
 
       if (response.statusCode == 200) {
-        List data = response.data;
+        final List data = response.data;
         List<WPPost> posts = data.map((json) => WPPost.fromJson(json)).toList();
 
-        // Fetch media sequentially only if needed. Because we reduced per_page to 8, 
-        // this is mathematically massively lighter on the 1GB memory cap.
-        for (int i = 0; i < posts.length; i++) {
-          if (posts[i].featuredMediaId != 0) {
-            String? mediaUrl = await fetchMediaUrl(posts[i].featuredMediaId);
-            posts[i] = posts[i].copyWith(featuredMediaUrl: mediaUrl);
-          }
+        // ─── BATCH MEDIA FETCH (2 API calls total instead of N+1) ───
+        final mediaIds = posts
+            .where((p) => p.featuredMediaId != 0)
+            .map((p) => p.featuredMediaId)
+            .toSet()
+            .toList();
+
+        if (mediaIds.isNotEmpty) {
+          final mediaMap = await _fetchMediaBatch(mediaIds);
+          posts = posts.map((post) {
+            if (post.featuredMediaId != 0 && mediaMap.containsKey(post.featuredMediaId)) {
+              return post.copyWith(featuredMediaUrl: mediaMap[post.featuredMediaId]);
+            }
+            return post;
+          }).toList();
         }
+
         return posts;
       } else {
-        throw Exception('Failed to load posts statusCode: ${response.statusCode}');
+        throw Exception('Failed to load posts: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching posts: $e');
     }
   }
 
-  Future<String?> fetchMediaUrl(int mediaId) async {
+  /// Fetches ALL media in a single request by passing a comma-separated list of IDs.
+  /// This replaces the old sequential N-requests loop.
+  Future<Map<int, String?>> _fetchMediaBatch(List<int> ids) async {
     try {
-      final response = await _dio.get('$_baseUrl/media/$mediaId');
+      final response = await _dio.get(
+        '$_baseUrl/media',
+        queryParameters: {
+          'include': ids.join(','),
+          'per_page': ids.length,
+          '_fields': 'id,source_url',
+        },
+      );
       if (response.statusCode == 200) {
-        return response.data['source_url'];
+        final Map<int, String?> result = {};
+        for (final item in response.data) {
+          result[item['id'] as int] = item['source_url'] as String?;
+        }
+        return result;
       }
-      return null;
-    } catch (e) {
-      return null;
-    }
+    } catch (_) {}
+    return {};
   }
 
   Future<List<WPCategory>> fetchCategories() async {
@@ -60,9 +80,8 @@ class ApiService {
         '$_baseUrl/categories',
         queryParameters: {'per_page': 15, 'hide_empty': true},
       );
-
       if (response.statusCode == 200) {
-        List data = response.data;
+        final List data = response.data;
         return data.map((json) => WPCategory.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load categories');
