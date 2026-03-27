@@ -13,6 +13,19 @@ class ShortsScreen extends ConsumerStatefulWidget {
 
 class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   int _currentIndex = 0;
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +37,7 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
         data: (shorts) {
           if (shorts.isEmpty) return const Center(child: Text('No videos found', style: TextStyle(color: Colors.white)));
           return PageView.builder(
+            controller: _pageController,
             scrollDirection: Axis.vertical,
             itemCount: shorts.length,
             onPageChanged: (index) {
@@ -136,11 +150,23 @@ class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: IgnorePointer(
-        child: YoutubePlayer(
-          controller: _controller,
-          aspectRatio: 9 / 16,
-          showVideoProgressIndicator: false,
+      child: GestureDetector(
+        onTap: () {
+          if (_controller.value.isPlaying) {
+            _controller.pause();
+          } else {
+            _controller.play();
+          }
+        },
+        child: IgnorePointer(
+          child: YoutubePlayer(
+            controller: _controller,
+            aspectRatio: 9 / 16,
+            showVideoProgressIndicator: false,
+            onReady: () {
+              _controller.play();
+            },
+          ),
         ),
       ),
     );
