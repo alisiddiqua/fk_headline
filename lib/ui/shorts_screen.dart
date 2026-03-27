@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:wakelock_plus/wakelock_plus.dart';
-import '../services/youtube_service.dart';
+import '../providers/api_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
+const int _shortsTabIndex = 3; // FK Shorts is the 4th tab (0-indexed)
 
 class ShortsScreen extends ConsumerStatefulWidget {
   const ShortsScreen({super.key});
@@ -16,6 +18,7 @@ class ShortsScreen extends ConsumerStatefulWidget {
 class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   int _currentIndex = 0;
   late PageController _pageController;
+  NativeShortPlayer? _activePlayer; // Reference to pause externally
 
   @override
   void initState() {
@@ -32,6 +35,8 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   @override
   Widget build(BuildContext context) {
     final shortsAsyncValue = ref.watch(shortsProvider);
+    final currentTab = ref.watch(currentTabProvider);
+    final bool isShortsActive = currentTab == _shortsTabIndex;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -61,7 +66,11 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  NativeShortPlayer(videoId: videoId, isActive: isActive, thumbnailUrl: thumbnailUrl),
+                  NativeShortPlayer(
+                    videoId: videoId,
+                    isActive: isActive && isShortsActive, // ← pause when tab hidden
+                    thumbnailUrl: thumbnailUrl,
+                  ),
                   
                   Positioned(
                     bottom: 0, left: 0, right: 0,

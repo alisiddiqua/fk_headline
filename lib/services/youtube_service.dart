@@ -60,11 +60,12 @@ class YoutubeService {
 
   YoutubeService(this._dio);
 
+  // Returns the uploads playlist ID (e.g., UUxxxxxx), NOT the channel ID
   Future<String> getChannelId() async {
     final channelRes = await _dio.get(
       'https://www.googleapis.com/youtube/v3/channels',
       queryParameters: {
-        'part': 'id',
+        'part': 'contentDetails',
         'forHandle': _channelHandle,
         'key': _apiKey,
       },
@@ -73,31 +74,37 @@ class YoutubeService {
     if (channelRes.data['items'] == null || channelRes.data['items'].isEmpty) {
       throw Exception('Channel not found via handle.');
     }
-    return channelRes.data['items'][0]['id'];
+    return channelRes.data['items'][0]['contentDetails']['relatedPlaylists']['uploads'];
   }
 
-  Future<Map<String, dynamic>> fetchVideos(String channelId, String? pageToken) async {
-    final query = {
+  Future<Map<String, dynamic>> fetchVideos(String playlistId, String? pageToken) async {
+    final query = <String, dynamic>{
       'part': 'snippet',
-      'channelId': channelId,
-      'type': 'video',
-      'videoDuration': 'short',
+      'playlistId': playlistId,
       'maxResults': 15,
-      'order': 'date',
       'key': _apiKey,
     };
     if (pageToken != null) {
       query['pageToken'] = pageToken;
     }
 
-    final searchRes = await _dio.get(
-      'https://www.googleapis.com/youtube/v3/search',
+    final res = await _dio.get(
+      'https://www.googleapis.com/youtube/v3/playlistItems',
       queryParameters: query,
     );
 
+    // Map to the same structure expected in shorts_screen: item['id']['videoId']
+    final rawItems = (res.data['items'] ?? []) as List<dynamic>;
+    final mapped = rawItems.map((item) {
+      return {
+        'id': {'videoId': item['snippet']['resourceId']['videoId']},
+        'snippet': item['snippet'],
+      };
+    }).toList();
+
     return {
-      'items': searchRes.data['items'] ?? [],
-      'nextPageToken': searchRes.data['nextPageToken'],
+      'items': mapped,
+      'nextPageToken': res.data['nextPageToken'],
     };
   }
 }

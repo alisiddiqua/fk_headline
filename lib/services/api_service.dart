@@ -1,17 +1,17 @@
 import 'package:dio/dio.dart';
 import '../models/post.dart';
 import '../models/category.dart';
-import '../core/constants.dart';
 
 class ApiService {
   final Dio _dio;
+  final String _baseUrl;
 
-  ApiService(this._dio);
+  ApiService(this._dio, {required String baseUrl}) : _baseUrl = baseUrl;
 
   Future<List<WPPost>> fetchPosts({int page = 1, int? categoryId, String? searchQuery}) async {
     try {
       final response = await _dio.get(
-        '${ApiConstants.baseUrl}${ApiConstants.postsEndpoint}',
+        '$_baseUrl/posts',
         queryParameters: {
           'page': page,
           'per_page': 8, // Reduced from 10 to instantly lower MySQL thread locks.
@@ -44,7 +44,7 @@ class ApiService {
 
   Future<String?> fetchMediaUrl(int mediaId) async {
     try {
-      final response = await _dio.get('${ApiConstants.baseUrl}${ApiConstants.mediaEndpoint}/$mediaId');
+      final response = await _dio.get('$_baseUrl/media/$mediaId');
       if (response.statusCode == 200) {
         return response.data['source_url'];
       }
@@ -57,7 +57,7 @@ class ApiService {
   Future<List<WPCategory>> fetchCategories() async {
     try {
       final response = await _dio.get(
-        '${ApiConstants.baseUrl}${ApiConstants.categoriesEndpoint}',
+        '$_baseUrl/categories',
         queryParameters: {'per_page': 15, 'hide_empty': true},
       );
 
