@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:video_player/video_player.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import '../services/youtube_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -45,7 +46,6 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
                 _currentIndex = index;
               });
               
-              // Infinite TikTok scrolling logic: If user is swiping near the end, softly pull the next block
               if (index >= shorts.length - 3) {
                 ref.read(shortsProvider.notifier).loadMore();
               }
@@ -60,7 +60,7 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
                 fit: StackFit.expand,
                 children: [
                   if (isActive)
-                    ShortVideoPlayer(videoId: videoId)
+                    NativeShortPlayer(videoId: videoId)
                   else
                     CachedNetworkImage(
                       imageUrl: thumbnailUrl,
@@ -115,57 +115,76 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   }
 }
 
-class ShortVideoPlayer extends StatefulWidget {
+class NativeShortPlayer extends StatefulWidget {
   final String videoId;
-  const ShortVideoPlayer({super.key, required this.videoId});
+  const NativeShortPlayer({super.key, required this.videoId});
 
   @override
-  State<ShortVideoPlayer> createState() => _ShortVideoPlayerState();
+  State<NativeShortPlayer> createState() => _NativeShortPlayerState();
 }
 
-class _ShortVideoPlayerState extends State<ShortVideoPlayer> {
-  late YoutubePlayerController _controller;
+class _NativeShortPlayerState extends State<NativeShortPlayer> {
+  VideoPlayerController? _controller;
+  final _ytConfig = yt.YoutubeExplode();
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.videoId,
-      flags: const YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
-        loop: true,
-        hideControls: true,
-        disableDragSeek: true,
-      ),
-    );
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      // Magically intercept YouTube's internal manifest array to steal the pure MP4 stream 
+      final manifest = await _ytConfig.videos.streamsClient.getManifest(widget.videoId);
+      final streamInfo = manifest.muxed.withHighestBitrate();
+      
+      _controller = VideoPlayerController.networkUrl(streamInfo.url);
+      await _controller!.initialize();
+      _controller!.setLooping(true);
+      _controller!.play();
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Fikrokhabar Stream Intercept Error: $e");
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
+    _ytConfig.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: GestureDetector(
-        onTap: () {
-          if (_controller.value.isPlaying) {
-            _controller.pause();
-          } else {
-            _controller.play();
-          }
-        },
-        child: IgnorePointer(
-          child: YoutubePlayer(
-            controller: _controller,
-            aspectRatio: 9 / 16,
-            showVideoProgressIndicator: false,
-            onReady: () {
-              _controller.play();
-            },
+    if (_isLoading || _controller == null || !_controller!.value.isInitialized) {
+      return const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
+    }
+    
+    return GestureDetector(
+      onTap: () {
+        if (_controller!.value.isPlaying) {
+          _controller!.pause();
+        } else {
+          _controller!.play();
+        }
+      },
+      child: Center(
+        child: SizedBox.expand(
+          child: FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: _controller!.value.size.width,
+              height: _controller!.value.size.height,
+              child: VideoPlayer(_controller!),
+            ),
           ),
         ),
       ),
