@@ -9,10 +9,11 @@ class CategoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsyncValue = ref.watch(categoriesProvider);
+    final isUrdu = ref.watch(appLanguageProvider) == AppLanguage.urdu;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categories'),
+        title: Text(isUrdu ? 'Urdu Categories' : 'Categories'),
       ),
       body: categoriesAsyncValue.when(
         data: (categories) {
