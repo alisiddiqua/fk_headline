@@ -40,6 +40,7 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
           if (shorts.isEmpty) return const Center(child: Text('No videos found', style: TextStyle(color: Colors.white)));
           return PageView.builder(
             controller: _pageController,
+            allowImplicitScrolling: true, // TRUE TIKTOK PRE-BUFFER ENGINE: Solves the decryption latency entirely!
             scrollDirection: Axis.vertical,
             itemCount: shorts.length,
             onPageChanged: (index) {
@@ -60,13 +61,7 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (isActive)
-                    NativeShortPlayer(videoId: videoId)
-                  else
-                    CachedNetworkImage(
-                      imageUrl: thumbnailUrl,
-                      fit: BoxFit.cover,
-                    ),
+                  NativeShortPlayer(videoId: videoId, isActive: isActive, thumbnailUrl: thumbnailUrl),
                   
                   Positioned(
                     bottom: 0, left: 0, right: 0,
@@ -118,7 +113,10 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
 
 class NativeShortPlayer extends StatefulWidget {
   final String videoId;
-  const NativeShortPlayer({super.key, required this.videoId});
+  final bool isActive;
+  final String thumbnailUrl;
+  
+  const NativeShortPlayer({super.key, required this.videoId, required this.isActive, required this.thumbnailUrl});
 
   @override
   State<NativeShortPlayer> createState() => _NativeShortPlayerState();
@@ -128,7 +126,6 @@ class _NativeShortPlayerState extends State<NativeShortPlayer> {
   VideoPlayerController? _controller;
   final _ytConfig = yt.YoutubeExplode();
   bool _isLoading = true;
-  bool _showControls = false;
 
   @override
   void initState() {
@@ -136,20 +133,36 @@ class _NativeShortPlayerState extends State<NativeShortPlayer> {
     _initPlayer();
   }
 
+  @override
+  void didUpdateWidget(NativeShortPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // INSTANT PLAY PROTOCOL: The moment the user swipes to the pre-buffered widget, it instantly plays from memory!
+    if (widget.isActive != oldWidget.isActive && _controller != null) {
+      if (widget.isActive) {
+        _controller!.play();
+        WakelockPlus.enable();
+      } else {
+        _controller!.pause();
+        _controller!.seekTo(Duration.zero);
+        WakelockPlus.disable();
+      }
+    }
+  }
+
   Future<void> _initPlayer() async {
     try {
       final manifest = await _ytConfig.videos.streamsClient.getManifest(widget.videoId);
-      
-      // SUPREME OPTIMIZATION: Pull the absolute lowest-resolution muxed stream (usually 360p) 
-      // instead of 'withHighestBitrate()'. This reduces download payload by up to 400%, 
-      // resulting in extremely fast mobile buffering latency!
       final streamInfo = manifest.muxed.first;
       
       _controller = VideoPlayerController.networkUrl(streamInfo.url);
       await _controller!.initialize();
       _controller!.setLooping(true);
-      _controller!.play();
-      WakelockPlus.enable();
+      
+      // Only play immediately if this exact widget is currently visible on load
+      if (widget.isActive) {
+        _controller!.play();
+        WakelockPlus.enable();
+      }
       
       if (mounted) {
         setState(() {
@@ -163,7 +176,7 @@ class _NativeShortPlayerState extends State<NativeShortPlayer> {
 
   @override
   void dispose() {
-    WakelockPlus.disable();
+    if (widget.isActive) WakelockPlus.disable();
     _controller?.dispose();
     _ytConfig.close();
     super.dispose();
@@ -172,84 +185,86 @@ class _NativeShortPlayerState extends State<NativeShortPlayer> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading || _controller == null || !_controller!.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
-    }
-    
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _showControls = !_showControls;
-        });
-      },
-      child: Stack(
+      return Stack(
         fit: StackFit.expand,
         children: [
-          // Raw Video Stream Render
-          Center(
-            child: SizedBox.expand(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _controller!.value.size.width,
-                  height: _controller!.value.size.height,
-                  child: VideoPlayer(_controller!),
-                ),
+          CachedNetworkImage(imageUrl: widget.thumbnailUrl, fit: BoxFit.cover),
+          Container(color: Colors.black.withOpacity(0.5)),
+          const Center(child: CircularProgressIndicator(color: Colors.red, strokeWidth: 3)),
+        ],
+      );
+    }
+    
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Raw Video Stream Render
+        Center(
+          child: SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _controller!.value.size.width,
+                height: _controller!.value.size.height,
+                child: VideoPlayer(_controller!),
               ),
             ),
           ),
-          
-          // Tactical UI Controls Overlay
-          if (_showControls)
-            Container(
-              color: Colors.black45, // Soft darkening cinematic overlay
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.replay_10, color: Colors.white, size: 50),
-                      onPressed: () {
-                        final current = _controller!.value.position;
-                        _controller!.seekTo(current - const Duration(seconds: 10));
-                      },
-                    ),
-                    const SizedBox(width: 20),
-                    IconButton(
-                      icon: Icon(
-                        _controller!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                        color: Colors.white,
-                        size: 70,
-                      ),
-                      onPressed: () {
-                        if (_controller!.value.isPlaying) {
-                          _controller!.pause();
-                          WakelockPlus.disable();
-                        } else {
-                          _controller!.play();
-                          WakelockPlus.enable();
-                          // Auto hide controls after a moment when play is re-engaged
-                          Future.delayed(const Duration(milliseconds: 500), () {
-                            if (mounted) setState(() { _showControls = false; });
-                          });
-                        }
-                        setState(() {});
-                      },
-                    ),
-                    const SizedBox(width: 20),
-                    IconButton(
-                      icon: const Icon(Icons.forward_10, color: Colors.white, size: 50),
-                      onPressed: () {
-                        final current = _controller!.value.position;
-                        _controller!.seekTo(current + const Duration(seconds: 10));
-                      },
-                    ),
-                  ],
-                ),
-              ),
+        ),
+        
+        // Permanent Minimalist Glassmorphic Controls
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(30),
             ),
-        ],
-      ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.replay_10, color: Colors.white, size: 36),
+                  onPressed: () {
+                    if (_controller != null) {
+                      final current = _controller!.value.position;
+                      _controller!.seekTo(current - const Duration(seconds: 10));
+                    }
+                  },
+                ),
+                const SizedBox(width: 16),
+                GestureDetector(
+                  onTap: () {
+                    if (_controller!.value.isPlaying) {
+                      _controller!.pause();
+                      WakelockPlus.disable();
+                    } else {
+                      _controller!.play();
+                      WakelockPlus.enable();
+                    }
+                    setState(() {});
+                  },
+                  child: Icon(
+                    _controller!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                    color: Colors.white,
+                    size: 54,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.forward_10, color: Colors.white, size: 36),
+                  onPressed: () {
+                    if (_controller != null) {
+                      final current = _controller!.value.position;
+                      _controller!.seekTo(current + const Duration(seconds: 10));
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
-
