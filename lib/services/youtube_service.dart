@@ -64,7 +64,7 @@ class YoutubeService {
     final channelRes = await _dio.get(
       'https://www.googleapis.com/youtube/v3/channels',
       queryParameters: {
-        'part': 'contentDetails',
+        'part': 'id',
         'forHandle': _channelHandle,
         'key': _apiKey,
       },
@@ -73,14 +73,17 @@ class YoutubeService {
     if (channelRes.data['items'] == null || channelRes.data['items'].isEmpty) {
       throw Exception('Channel not found via handle.');
     }
-    return channelRes.data['items'][0]['contentDetails']['relatedPlaylists']['uploads'];
+    return channelRes.data['items'][0]['id'];
   }
 
-  Future<Map<String, dynamic>> fetchVideos(String playlistId, String? pageToken) async {
+  Future<Map<String, dynamic>> fetchVideos(String channelId, String? pageToken) async {
     final query = {
       'part': 'snippet',
-      'playlistId': playlistId,
+      'channelId': channelId,
+      'type': 'video',
+      'videoDuration': 'short',
       'maxResults': 15,
+      'order': 'date',
       'key': _apiKey,
     };
     if (pageToken != null) {
@@ -88,7 +91,7 @@ class YoutubeService {
     }
 
     final searchRes = await _dio.get(
-      'https://www.googleapis.com/youtube/v3/playlistItems',
+      'https://www.googleapis.com/youtube/v3/search',
       queryParameters: query,
     );
 
