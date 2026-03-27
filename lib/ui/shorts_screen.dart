@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
@@ -136,6 +138,8 @@ class _NativeShortPlayerState extends State<NativeShortPlayer> {
   VideoPlayerController? _controller;
   final _ytConfig = yt.YoutubeExplode();
   bool _isLoading = true;
+  bool _showControls = false;
+  Timer? _hideTimer;
 
   @override
   void initState() {
@@ -186,10 +190,26 @@ class _NativeShortPlayerState extends State<NativeShortPlayer> {
 
   @override
   void dispose() {
+    _hideTimer?.cancel();
     if (widget.isActive) WakelockPlus.disable();
     _controller?.dispose();
     _ytConfig.close();
     super.dispose();
+  }
+
+  void _toggleControls() {
+    if (_showControls) {
+      // Already visible — hide immediately
+      _hideTimer?.cancel();
+      setState(() => _showControls = false);
+    } else {
+      // Show and start 5-second auto-hide timer
+      _hideTimer?.cancel();
+      setState(() => _showControls = true);
+      _hideTimer = Timer(const Duration(seconds: 5), () {
+        if (mounted) setState(() => _showControls = false);
+      });
+    }
   }
 
   @override
@@ -205,76 +225,108 @@ class _NativeShortPlayerState extends State<NativeShortPlayer> {
       );
     }
     
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // Raw Video Stream Render
-        Center(
-          child: SizedBox.expand(
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _controller!.value.size.width,
-                height: _controller!.value.size.height,
-                child: VideoPlayer(_controller!),
+    return GestureDetector(
+      onTap: _toggleControls,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Raw Video Stream
+          Center(
+            child: SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _controller!.value.size.width,
+                  height: _controller!.value.size.height,
+                  child: VideoPlayer(_controller!),
+                ),
               ),
             ),
           ),
-        ),
-        
-        // Permanent Minimalist Glassmorphic Controls
-        Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(30),
+
+          // Controls Overlay — visible only when _showControls is true
+          if (_showControls)
+            AnimatedOpacity(
+              opacity: _showControls ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                color: Colors.black.withOpacity(0.4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Seek + Play row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.replay_10, color: Colors.white, size: 42),
+                          onPressed: () {
+                            if (_controller != null) {
+                              _controller!.seekTo(_controller!.value.position - const Duration(seconds: 10));
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 20),
+                        GestureDetector(
+                          onTap: () {
+                            if (_controller!.value.isPlaying) {
+                              _controller!.pause();
+                              WakelockPlus.disable();
+                            } else {
+                              _controller!.play();
+                              WakelockPlus.enable();
+                            }
+                            setState(() {});
+                          },
+                          child: Icon(
+                            _controller!.value.isPlaying
+                                ? Icons.pause_circle_filled
+                                : Icons.play_circle_fill,
+                            color: Colors.white,
+                            size: 64,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        IconButton(
+                          icon: const Icon(Icons.forward_10, color: Colors.white, size: 42),
+                          onPressed: () {
+                            if (_controller != null) {
+                              _controller!.seekTo(_controller!.value.position + const Duration(seconds: 10));
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    // Share button
+                    GestureDetector(
+                      onTap: () {
+                        final url = 'https://www.youtube.com/watch?v=${widget.videoId}';
+                        Share.share(url, subject: 'Watch this on FK Headline');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white54),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.share, color: Colors.white, size: 20),
+                            SizedBox(width: 8),
+                            Text('Share Video', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.replay_10, color: Colors.white, size: 36),
-                  onPressed: () {
-                    if (_controller != null) {
-                      final current = _controller!.value.position;
-                      _controller!.seekTo(current - const Duration(seconds: 10));
-                    }
-                  },
-                ),
-                const SizedBox(width: 16),
-                GestureDetector(
-                  onTap: () {
-                    if (_controller!.value.isPlaying) {
-                      _controller!.pause();
-                      WakelockPlus.disable();
-                    } else {
-                      _controller!.play();
-                      WakelockPlus.enable();
-                    }
-                    setState(() {});
-                  },
-                  child: Icon(
-                    _controller!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                    color: Colors.white,
-                    size: 54,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.forward_10, color: Colors.white, size: 36),
-                  onPressed: () {
-                    if (_controller != null) {
-                      final current = _controller!.value.position;
-                      _controller!.seekTo(current + const Duration(seconds: 10));
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
