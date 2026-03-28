@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -88,6 +89,7 @@ class AudioServiceWrapper {
   late MyAudioHandler _handler;
   List<PodcastItem> _playlist = [];
   int _currentIndex = -1;
+  PlaybackMode _mode = PlaybackMode.normal;
 
   MyAudioHandler get handler => _handler;
   AudioPlayer get player => _handler._player;
@@ -130,11 +132,32 @@ class AudioServiceWrapper {
     _handler.play();
   }
 
-  void playNext() => _playIndex(_currentIndex + 1);
-  void playPrevious() => _playIndex(_currentIndex - 1);
+  void playNext() {
+    if (_playlist.isEmpty) return;
+    if (_mode == PlaybackMode.loop) {
+      _playIndex(_currentIndex);
+    } else if (_mode == PlaybackMode.shuffle) {
+      final rand = Random();
+      _playIndex(rand.nextInt(_playlist.length));
+    } else {
+      if (_currentIndex < _playlist.length - 1) {
+        _playIndex(_currentIndex + 1);
+      }
+    }
+  }
+
+  void playPrevious() {
+    if (_playlist.isEmpty || _currentIndex <= 0) return;
+    _playIndex(_currentIndex - 1);
+  }
 
   void seekForward() => _handler.seek(player.position + const Duration(seconds: 10));
   void seekBackward() => _handler.seek(player.position - const Duration(seconds: 10));
+
+  void setMode(PlaybackMode mode) => _mode = mode;
+  void stop() => _handler.stop();
+  void pause() => _handler.pause();
+  void resume() => _handler.play();
 
   Duration? _parseDuration(String d) {
     if (d.isEmpty) return null;
