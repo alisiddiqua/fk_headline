@@ -20,9 +20,9 @@ class HomeScreen extends ConsumerWidget {
           children: [
             Image.asset('assets/logo.png', height: 28),
             const SizedBox(width: 10),
-            Text(
-              isUrdu ? 'FK Urdu Khabre' : 'FK Headline',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            const Text(
+              'FK Headline',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),

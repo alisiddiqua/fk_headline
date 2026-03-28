@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/post.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_html/flutter_html.dart';
-import '../providers/bookmark_provider.dart';
 import '../services/share_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,7 +14,6 @@ class ArticleDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isBookmarkedAsync = ref.watch(isBookmarkedProvider(post.id));
     final bool isPhotoGallery = post.content.contains('foogallery');
 
     return Scaffold(
@@ -47,38 +45,11 @@ class ArticleDetailScreen extends ConsumerWidget {
                   onPressed: () => ShareService.shareArticle(post),
                 ),
               ),
-              Container(
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                ),
-                margin: const EdgeInsets.only(right: 8),
-                child: isBookmarkedAsync.when(
-                  data: (isBookmarked) => IconButton(
-                    icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border, color: Colors.white),
-                    onPressed: () async {
-                      final service = ref.read(bookmarkServiceProvider);
-                      if (isBookmarked) {
-                        await service.removeBookmark(post.id);
-                      } else {
-                        await service.saveBookmark(post);
-                      }
-                      ref.invalidate(isBookmarkedProvider(post.id));
-                      ref.invalidate(bookmarksProvider);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(isBookmarked ? 'Removed from bookmarks' : 'Saved to bookmarks')),
-                      );
-                    },
-                  ),
-                  loading: () => const IconButton(icon: Icon(Icons.bookmark_border, color: Colors.white), onPressed: null),
-                  error: (_, __) => const IconButton(icon: Icon(Icons.error, color: Colors.white), onPressed: null),
-                ),
-              ),
             ],
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 80.0),
+              padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 120.0), // Extra padding for mini-player
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

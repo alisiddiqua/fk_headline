@@ -4,8 +4,9 @@ import '../providers/api_provider.dart';
 import 'home_screen.dart';
 import 'category_screen.dart';
 import 'search_screen.dart';
-import 'bookmarks_screen.dart';
+import 'islamiafkaar_screen.dart';
 import 'shorts_screen.dart';
+import 'widgets/audio_mini_player.dart';
 
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});
@@ -19,13 +20,23 @@ class MainScreen extends ConsumerWidget {
       CategoryScreen(),
       SearchScreen(),
       ShortsScreen(),
-      BookmarksScreen(),
+      IslamiafkaarScreen(),
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: currentIndex,
-        children: screens,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: currentIndex,
+            children: screens,
+          ),
+          const Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: AudioMiniPlayer(),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
@@ -45,7 +56,7 @@ class MainScreen extends ConsumerWidget {
             icon: Icon(Icons.play_circle_fill, color: Colors.red),
             label: 'FK Shorts',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: 'Saved'),
+          BottomNavigationBarItem(icon: Icon(Icons.mic), label: 'Islamiafkaar'),
         ],
       ),
     );
