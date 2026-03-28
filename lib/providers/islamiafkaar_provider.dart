@@ -6,7 +6,8 @@ class PodcastItem {
   final String title;
   final String link;
   final String audioUrl;
-  final String description;
+  final String speakerName; // from <description> tag
+  final String duration;    // from <itunes:duration> tag
   final String pubDate;
   final String? imageUrl;
 
@@ -14,7 +15,8 @@ class PodcastItem {
     required this.title,
     required this.link,
     required this.audioUrl,
-    required this.description,
+    required this.speakerName,
+    required this.duration,
     required this.pubDate,
     this.imageUrl,
   });
@@ -22,30 +24,40 @@ class PodcastItem {
 
 final islamiafkaarProvider = FutureProvider<List<PodcastItem>>((ref) async {
   final response = await http.get(Uri.parse('https://islamiafkaar.com/feed/podcast/'));
-  
+
   if (response.statusCode == 200) {
     final document = XmlDocument.parse(response.body);
     final items = document.findAllElements('item');
-    
+
     return items.map((node) {
-      final title = node.findElements('title').first.innerText;
-      final link = node.findElements('link').first.innerText;
-      final description = node.findElements('description').first.innerText;
-      final pubDate = node.findElements('pubDate').first.innerText;
-      
-      // Extract audio URL from <enclosure url="...">
+      final title = node.findElements('title').first.innerText
+          .replaceAll('&#8211;', '–')
+          .replaceAll('&amp;', '&');
+      final link = node.findElements('link').firstOrNull?.innerText ?? '';
+      final pubDate = node.findElements('pubDate').firstOrNull?.innerText ?? '';
+
+      // Speaker name is stored in the <description> tag (plain text in CDATA)
+      final rawDescription = node.findElements('description').firstOrNull?.innerText ?? '';
+      // Strip any HTML tags if present
+      final speakerName = rawDescription.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+
+      // Duration from <itunes:duration>
+      final duration = node.findAllElements('duration').firstOrNull?.innerText ?? '';
+
+      // MP3 URL from <enclosure url="...">
       final enclosure = node.findElements('enclosure').firstOrNull;
       final audioUrl = enclosure?.getAttribute('url') ?? '';
-      
-      // Extract image from <itunes:image href="..."> or featured image
-      final itunesImage = node.findElements('itunes:image').firstOrNull;
+
+      // Thumbnail from <itunes:image href="...">
+      final itunesImage = node.findAllElements('image').firstOrNull;
       final imageUrl = itunesImage?.getAttribute('href');
 
       return PodcastItem(
         title: title,
         link: link,
         audioUrl: audioUrl,
-        description: description,
+        speakerName: speakerName,
+        duration: duration,
         pubDate: pubDate,
         imageUrl: imageUrl,
       );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/islamiafkaar_provider.dart';
 import '../services/audio_service.dart';
+import 'widgets/audio_mini_player.dart';
 
 class IslamiafkaarScreen extends ConsumerWidget {
   const IslamiafkaarScreen({super.key});
@@ -21,9 +22,9 @@ class IslamiafkaarScreen extends ConsumerWidget {
             return const Center(child: Text('No audio found.'));
           }
           return ListView.separated(
-            padding: const EdgeInsets.only(bottom: 100), // Space for mini-player
+            padding: const EdgeInsets.only(bottom: 140),
             itemCount: items.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
+            separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = items[index];
               return ListTile(
@@ -32,17 +33,26 @@ class IslamiafkaarScreen extends ConsumerWidget {
                   child: item.imageUrl != null
                       ? CachedNetworkImage(
                           imageUrl: item.imageUrl!,
-                          width: 50,
-                          height: 50,
+                          width: 54,
+                          height: 54,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(color: Colors.grey[200]),
-                          errorWidget: (context, url, error) => const Icon(Icons.music_note),
+                          placeholder: (_, __) => Container(
+                            color: Colors.indigo.withOpacity(0.1),
+                            child: const Icon(Icons.mic, color: Colors.indigo),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            color: Colors.indigo.withOpacity(0.1),
+                            child: const Icon(Icons.mic, color: Colors.indigo),
+                          ),
                         )
                       : Container(
-                          width: 50,
-                          height: 50,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.mic, color: Colors.grey),
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: Colors.indigo.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.mic, color: Colors.indigo),
                         ),
                 ),
                 title: Text(
@@ -51,24 +61,39 @@ class IslamiafkaarScreen extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                subtitle: Text(
-                  item.pubDate.length > 20 ? item.pubDate.substring(0, 16) : item.pubDate,
-                  style: const TextStyle(fontSize: 12),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (item.speakerName.isNotEmpty)
+                      Text(
+                        item.speakerName,
+                        style: const TextStyle(fontSize: 12, color: Colors.indigo),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (item.duration.isNotEmpty)
+                      Text(
+                        '⏱ ${item.duration}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      ),
+                  ],
                 ),
-                trailing: const Icon(Icons.play_circle_fill, color: Colors.indigo, size: 30),
+                trailing: const Icon(Icons.play_circle_fill, color: Colors.indigo, size: 34),
                 onTap: () {
-                  ref.read(audioServiceProvider).play(
-                        item.audioUrl,
-                        title: item.title,
-                        artist: "Islamiafkaar",
-                      );
+                  // Play from this index, passing the full playlist
+                  ref.read(audioServiceProvider).playFromPlaylist(items, index);
+
+                  // Open the full player immediately
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AudioPlayerScreen()),
+                  );
                 },
               );
             },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        error: (err, _) => Center(child: Text('Error: $err')),
       ),
     );
   }
