@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../services/audio_service.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AudioMiniPlayer extends ConsumerWidget {
   const AudioMiniPlayer({super.key});
@@ -121,6 +121,22 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       appBar: AppBar(
         title: const Text('Islamiafkaar'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () {
+              final title = audioService.currentTitle ?? '';
+              final speaker = audioService.currentSpeaker ?? '';
+              final message = '''
+🎙️ Listen to *$speaker* on *"$title"*
+
+📲 Download *FK Headline* for more:
+https://play.google.com/store/apps/details?id=com.fikrokhabar.fkheadline
+''';
+              Share.share(message);
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<PlayerState>(
         stream: player.playerStateStream,

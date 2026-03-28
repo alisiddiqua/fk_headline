@@ -4,18 +4,44 @@ import '../providers/api_provider.dart';
 import 'widgets/post_card.dart';
 import '../models/category.dart';
 
-class CategoryPostsScreen extends ConsumerWidget {
+class CategoryPostsScreen extends ConsumerStatefulWidget {
   final WPCategory category;
 
   const CategoryPostsScreen({super.key, required this.category});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsyncValue = ref.watch(postsProvider(category.id));
+  ConsumerState<CategoryPostsScreen> createState() => _CategoryPostsScreenState();
+}
+
+class _CategoryPostsScreenState extends ConsumerState<CategoryPostsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(postsProvider(widget.category.id).notifier).loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final postsAsyncValue = ref.watch(postsProvider(widget.category.id));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(category.name.replaceAll(RegExp(r'&amp;'), '&')),
+        title: Text(widget.category.name.replaceAll(RegExp(r'&amp;'), '&')),
       ),
       body: postsAsyncValue.when(
         data: (posts) {
@@ -24,32 +50,26 @@ class CategoryPostsScreen extends ConsumerWidget {
           }
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(postsProvider(category.id));
+              ref.refresh(postsProvider(widget.category.id));
             },
             child: ListView.separated(
+              controller: _scrollController,
               itemCount: posts.length + 1,
               separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 if (index == posts.length) {
-                  final notifier = ref.read(postsProvider(category.id).notifier);
+                  final notifier = ref.watch(postsProvider(widget.category.id).notifier);
                   if (!notifier.hasMore) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.0),
-                      child: Center(child: Text('You have reached the end', style: TextStyle(color: Colors.grey))),
+                      child: Center(
+                          child: Text('You have reached the end',
+                              style: TextStyle(color: Colors.grey))),
                     );
                   }
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 20.0),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: () => notifier.loadMore(),
-                      child: postsAsyncValue.isLoading 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Load More Category News', style: TextStyle(fontSize: 16)),
-                    ),
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32.0),
+                    child: Center(child: CircularProgressIndicator()),
                   );
                 }
                 return PostCard(post: posts[index]);

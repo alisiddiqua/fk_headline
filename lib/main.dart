@@ -10,8 +10,17 @@ void main() async {
   
   // Initialize OneSignal push notifications
   await NotificationService.initialize();
+
+  // Initialize AudioService for background playback
+  final audioService = AudioServiceWrapper();
+  await audioService.init();
   
-  runApp(const ProviderScope(child: FKHeadlineApp()));
+  runApp(ProviderScope(
+    overrides: [
+      audioServiceProvider.overrideWithValue(audioService),
+    ],
+    child: const FKHeadlineApp(),
+  ));
 }
 
 class FKHeadlineApp extends StatelessWidget {

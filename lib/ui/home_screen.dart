@@ -5,11 +5,37 @@ import 'widgets/post_card.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(postsProvider(null).notifier).loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final postsAsyncValue = ref.watch(postsProvider(null));
     final language = ref.watch(appLanguageProvider);
     final isUrdu = language == AppLanguage.urdu;
@@ -27,12 +53,10 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          // Language toggle button — replaces old YouTube icon
           GestureDetector(
             onTap: () {
               final newLang = isUrdu ? AppLanguage.english : AppLanguage.urdu;
               ref.read(appLanguageProvider.notifier).state = newLang;
-              // Invalidate all posts & categories to reload with new endpoint
               ref.invalidate(postsProvider(null));
               ref.invalidate(categoriesProvider);
             },
@@ -40,8 +64,6 @@ class HomeScreen extends ConsumerWidget {
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                // Green = currently in Urdu (tap to go back to English)
-                // Orange = currently in English (tap to switch to Urdu)
                 color: isUrdu ? Colors.green.shade600 : Colors.deepOrange,
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -78,17 +100,18 @@ class HomeScreen extends ConsumerWidget {
           }
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(postsProvider(null));
+              ref.refresh(postsProvider(null));
             },
             child: ListView.separated(
-              itemCount: posts.length + 1,
+              controller: _scrollController,
+              itemCount: posts.length + (ref.watch(postsProvider(null).notifier).hasMore ? 1 : 1),
               separatorBuilder: (context, index) {
                 if (index == 0) return const SizedBox(height: 16);
                 return const Divider(height: 1);
               },
               itemBuilder: (context, index) {
                 if (index == posts.length) {
-                  final notifier = ref.read(postsProvider(null).notifier);
+                  final notifier = ref.watch(postsProvider(null).notifier);
                   if (!notifier.hasMore) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.0),
@@ -98,27 +121,9 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     );
                   }
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 24.0, horizontal: 20.0),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: () => notifier.loadMore(),
-                      child: postsAsyncValue.isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
-                          : Text(
-                              isUrdu ? 'مزید خبریں لوڈ کریں' : 'Load More News',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                    ),
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32.0),
+                    child: Center(child: CircularProgressIndicator()),
                   );
                 }
 
