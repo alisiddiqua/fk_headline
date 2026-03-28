@@ -7,8 +7,8 @@ class NotificationService {
     // Initialize OneSignal
     OneSignal.initialize(_appId);
     
-    // Request permission for notifications (shows system dialog on first launch) without blocking runApp
-    OneSignal.Notifications.requestPermission(true);
+    // Request permission for notifications (shows system dialog on first launch)
+    await OneSignal.Notifications.requestPermission(true);
 
     // Listen for notification clicks — opens app to relevant section
     OneSignal.Notifications.addClickListener((event) {

@@ -23,35 +23,48 @@ class PodcastItem {
 }
 
 class IslamiafkaarNotifier extends AsyncNotifier<List<PodcastItem>> {
-  int _currentPage = 1;
-  bool _hasMore = true;
-  bool _isFetching = false;
-
-  bool get hasMore => _hasMore;
+  int _page = 1;
+  bool _hasMoreData = true;
+  bool get hasMoreData => _hasMoreData;
 
   @override
   Future<List<PodcastItem>> build() async {
-    _currentPage = 1;
-    _hasMore = true;
-    _isFetching = false;
-    return _fetchPage(_currentPage);
+    _page = 1;
+    _hasMoreData = true;
+    return _fetchPage(_page);
+  }
+
+  Future<void> loadMore() async {
+    if (state.isLoading || !_hasMoreData) return;
+    
+    // Temporarily set loading state to true without losing current data
+    state = const AsyncLoading<List<PodcastItem>>().copyWithPrevious(state);
+    
+    try {
+      _page++;
+      final newItems = await _fetchPage(_page);
+      
+      if (newItems.isEmpty) {
+        _hasMoreData = false;
+      }
+      
+      state = AsyncData([...state.value ?? [], ...newItems]);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
   }
 
   Future<List<PodcastItem>> _fetchPage(int page) async {
-    final url = page == 1
-        ? 'https://islamiafkaar.com/feed/podcast/'
-        : 'https://islamiafkaar.com/feed/podcast/?paged=$page';
-    
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse('https://islamiafkaar.com/feed/podcast/?paged=$page'));
 
     if (response.statusCode == 200) {
       final document = XmlDocument.parse(response.body);
       final items = document.findAllElements('item');
 
       return items.map((node) {
-        final title = node.findElements('title').first.innerText
+        final title = node.findElements('title').firstOrNull?.innerText
             .replaceAll('&#8211;', '–')
-            .replaceAll('&amp;', '&');
+            .replaceAll('&amp;', '&') ?? 'Unknown Title';
         final link = node.findElements('link').firstOrNull?.innerText ?? '';
         final pubDate = node.findElements('pubDate').firstOrNull?.innerText ?? '';
 
@@ -76,29 +89,12 @@ class IslamiafkaarNotifier extends AsyncNotifier<List<PodcastItem>> {
           imageUrl: imageUrl,
         );
       }).toList();
+    } else if (response.statusCode == 404) {
+      // 404 usually means no more pages in wordpress rss
+      _hasMoreData = false;
+      return [];
     } else {
-      return []; // Return empty if page not found
-    }
-  }
-
-  Future<void> loadMore() async {
-    if (!_hasMore || _isFetching || state.isLoading) return;
-
-    _isFetching = true;
-    try {
-      _currentPage++;
-      final newItems = await _fetchPage(_currentPage);
-
-      if (newItems.isEmpty) {
-        _hasMore = false;
-      } else {
-        final currentItems = state.valueOrNull ?? [];
-        state = AsyncData([...currentItems, ...newItems]);
-      }
-    } catch (e, st) {
-      state = AsyncError<List<PodcastItem>>(e, st).copyWithPrevious(state);
-    } finally {
-      _isFetching = false;
+      throw Exception('Failed to load Islamiafkaar feed');
     }
   }
 }

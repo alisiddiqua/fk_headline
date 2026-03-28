@@ -3,52 +3,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme.dart';
 import 'ui/main_screen.dart';
 import 'ui/splash_screen.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/fcm_service.dart';
-import 'services/audio_service.dart';
-import 'providers/api_provider.dart';
+
+import 'package:just_audio_background/just_audio_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.fikrokhabar.app.channel.audio',
+    androidNotificationChannelName: 'Islamiafkaar Audio Playback',
+    androidNotificationOngoing: true,
+  );
+  
   // Initialize OneSignal push notifications
   await NotificationService.initialize();
-
-  // Initialize AudioService for background playback
-  final audioService = AudioServiceWrapper();
-  await audioService.init();
   
-  runApp(ProviderScope(
-    overrides: [
-      audioServiceProvider.overrideWithValue(audioService),
-    ],
-    child: const FKHeadlineApp(),
-  ));
+  runApp(const ProviderScope(child: FKHeadlineApp()));
 }
 
-class FKHeadlineApp extends ConsumerWidget {
+class FKHeadlineApp extends StatelessWidget {
   const FKHeadlineApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final language = ref.watch(appLanguageProvider);
-    final isUrdu = language == AppLanguage.urdu;
-
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'FK Headline',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      locale: isUrdu ? const Locale('ur', 'PK') : const Locale('en', 'US'),
-      supportedLocales: const [
-        Locale('en', 'US'),
-        Locale('ur', 'PK'),
-      ],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
       home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
