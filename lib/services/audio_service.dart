@@ -64,7 +64,7 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
         MediaAction.seekForward,
         MediaAction.seekBackward,
       },
-      androidCompactIndices: const [0, 1, 3],
+      androidCompactActionIndices: const [0, 1, 3],
       processingState: const {
         ProcessingState.idle: AudioProcessingState.idle,
         ProcessingState.loading: AudioProcessingState.loading,
